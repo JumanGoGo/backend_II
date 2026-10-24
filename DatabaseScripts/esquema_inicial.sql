@@ -5,6 +5,7 @@
 
 CREATE database e_commerce
 
+
 USE e_commerce
 
 -- 1. CREACIÓN DE TABLAS
@@ -130,7 +131,7 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-ALTER PROCEDURE [dbo].[sp_GetAllActiveProducts]
+CREATE PROCEDURE [dbo].[sp_GetAllActiveProducts]
     @method varchar(100), 
     @isActive bit = null,
     @SKU varchar(50) = null

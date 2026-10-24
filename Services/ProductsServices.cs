@@ -155,5 +155,51 @@ namespace backend_II.Services
                 };
             }
         }
+
+        // ===== INICIO ACTIVIDAD: BÚSQUEDA POR NOMBRE =====
+
+        /// <summary>
+        /// Lógica compartida por los dos endpoints de búsqueda por nombre
+        /// (GET con query y POST con body). El controlador solo le pasa el texto.
+        /// </summary>
+        public async Task<GeneralResponse<List<Product>>> GetByName(string? name)
+        {
+            // Primera barrera de validación. Se corta aquí para no abrir una
+            // conexión a la base de datos por una petición que ya es inválida.
+            // La segunda barrera vive dentro del procedimiento almacenado.
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return new GeneralResponse<List<Product>>
+                {
+                    Success = false,
+                    Message = "El parámetro 'name' es obligatorio.",
+                    Data = null
+                };
+            }
+
+            try
+            {
+                var products = await _repository.GetProductsByNameAsync(name);
+
+                return new GeneralResponse<List<Product>>
+                {
+                    Success = true,
+                    Message = $"Se encontraron {products.Count} producto(s).",
+                    Data = products
+                };
+            }
+            catch (Exception ex)
+            {
+                // ex.Message trae el texto que definió el procedimiento almacenado.
+                return new GeneralResponse<List<Product>>
+                {
+                    Success = false,
+                    Message = ex.Message,
+                    Data = null
+                };
+            }
+        }
+
+        // ===== FIN ACTIVIDAD: BÚSQUEDA POR NOMBRE =====
     }
 }

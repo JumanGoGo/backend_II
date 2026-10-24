@@ -44,5 +44,24 @@ namespace backend_II.Controllers
         {
             return await _services.GetByBody(request);
         }
+
+        // ===== INICIO ACTIVIDAD: BÚSQUEDA POR NOMBRE =====
+
+        // GET: api/products/by-name?name=laptop
+        [HttpGet("by-name")]
+        public async Task<GeneralResponse<List<Product>>> GetByNameFromQuery([FromQuery] string? name)
+        {
+            return await _services.GetByName(name);
+        }
+
+        // POST: api/products/by-name     Body: { "name": "laptop" }
+        [HttpPost("by-name")]
+        public async Task<GeneralResponse<List<Product>>> GetByNameFromBody([FromBody] ProductSearchRequest? request)
+        {
+            // El operador ?. evita una excepción si el cuerpo llega vacío.
+            return await _services.GetByName(request?.Name);
+        }
+
+        // ===== FIN ACTIVIDAD: BÚSQUEDA POR NOMBRE =====
     }
 }
