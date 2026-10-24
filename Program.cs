@@ -3,15 +3,20 @@ using DotNetEnv;
 Env.Load();
 
 var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddControllers();
 
-// Register the repository so we can inject it into the controller
+// Repositories
 builder.Services.AddScoped<backend_II.Database.ProductRepository>();
+builder.Services.AddScoped<backend_II.Database.UserRepository>();
+
+// JWT
+builder.Services.AddScoped<backend_II.Authentication.ITokenService, backend_II.Authentication.JwtTokenService>();
+
+// Services
 builder.Services.AddScoped<backend_II.Services.ProductsServices>();
+builder.Services.AddScoped<backend_II.Services.AuthService>();
+
 
 var app = builder.Build();
 
