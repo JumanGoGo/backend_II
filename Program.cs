@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 using DotNetEnv;
 using backend_II.Controllers;
 using backend_II.Database;
@@ -117,3 +118,37 @@ app.UseHttpsRedirection();
 app.MapControllers();
 
 app.Run();
+=======
+using DotNetEnv;
+
+Env.Load();
+
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddOpenApi();
+builder.Services.AddControllers();
+
+// Repositories
+builder.Services.AddScoped<backend_II.Database.ProductRepository>();
+builder.Services.AddScoped<backend_II.Database.UserRepository>();
+
+// JWT
+builder.Services.AddScoped<backend_II.Authentication.ITokenService, backend_II.Authentication.JwtTokenService>();
+
+// Services
+builder.Services.AddScoped<backend_II.Services.ProductsServices>();
+builder.Services.AddScoped<backend_II.Services.AuthService>();
+
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+}
+
+app.UseHttpsRedirection();
+app.MapControllers();
+
+app.Run();
+>>>>>>> 175455b9813182a119596e5976cc838f81d9d8f8
