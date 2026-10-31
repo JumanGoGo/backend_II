@@ -24,8 +24,14 @@ CREATE OR ALTER PROCEDURE [dbo].[sp_GetAllActiveProducts]
     -- Se declara del mismo tipo y tamaño que la columna Products.Name
     -- (NVARCHAR(100)) para que SQL Server no tenga que hacer una
     -- conversión implícita al comparar.
-    @Name     nvarchar(100) = null
+    @Name     nvarchar(100) = null,
     -- ===== FIN ACTIVIDAD: BÚSQUEDA POR NOMBRE =====
+    -- Parámetros agregados por el profesor (API keys, órdenes y login)
+    @KeyValue  uniqueidentifier = null,
+    @UserId    int              = null,
+    @ProductId int              = null,
+    @Quantity  int              = null,
+    @Username  nvarchar(50)     = null
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -216,6 +222,137 @@ BEGIN
         RETURN
     END
     -- ===== FIN ACTIVIDAD: BÚSQUEDA POR NOMBRE =====
+
+
+    -- MÉTODO: ValidateApiKey (del profesor)
+    IF @method = 'ValidateApiKey'
+    BEGIN
+        IF @KeyValue IS NULL
+        BEGIN
+            SELECT
+                '0' as 'code',
+                'No se ha especificado el parámetro KeyValue' as 'message'
+            RETURN
+        END
+
+        IF EXISTS (SELECT 1 FROM ApiKeys WHERE KeyValue = @KeyValue AND IsActive = 1)
+        BEGIN
+            SELECT
+                KeyName,
+                '1' as 'code',
+                'Success' as 'message'
+            FROM ApiKeys
+            WHERE KeyValue = @KeyValue AND IsActive = 1
+        END
+        ELSE
+        BEGIN
+            SELECT
+                '0' as 'code',
+                'La API Key no es válida o no está activa' as 'message'
+        END
+
+        RETURN
+    END
+
+
+    -- MÉTODO: CreateOrder (del profesor)
+    IF @method = 'CreateOrder'
+    BEGIN
+        IF @UserId IS NULL OR @ProductId IS NULL OR @Quantity IS NULL
+        BEGIN
+            SELECT
+                '0' as 'code',
+                'Faltan parámetros para crear la orden' as 'message'
+            RETURN
+        END
+
+        DECLARE @CurrentStock int;
+        DECLARE @UnitPrice    decimal(18,2);
+        DECLARE @TotalAmount  decimal(18,2);
+        DECLARE @NewOrderId   int;
+
+        SELECT
+            @CurrentStock = StockQuantity,
+            @UnitPrice    = Price
+        FROM Products
+        WHERE ProductId = @ProductId AND IsActive = 1;
+
+        IF @CurrentStock IS NULL OR @CurrentStock < @Quantity
+        BEGIN
+            SELECT
+                '0' as 'code',
+                'Stock insuficiente o producto inactivo' as 'message'
+            RETURN
+        END
+
+        SET @TotalAmount = @UnitPrice * @Quantity;
+
+        BEGIN TRY
+            BEGIN TRANSACTION;
+
+            INSERT INTO Orders (UserId, TotalAmount, Status, OrderDate)
+            VALUES (@UserId, @TotalAmount, 'Completed', GETDATE());
+
+            SET @NewOrderId = SCOPE_IDENTITY();
+
+            INSERT INTO OrderDetails (OrderId, ProductId, Quantity, UnitPrice)
+            VALUES (@NewOrderId, @ProductId, @Quantity, @UnitPrice);
+
+            UPDATE Products
+            SET StockQuantity = StockQuantity - @Quantity
+            WHERE ProductId = @ProductId;
+
+            COMMIT TRANSACTION;
+
+            SELECT
+                @NewOrderId as 'OrderId',
+                '1' as 'code',
+                'Orden creada con éxito' as 'message'
+        END TRY
+        BEGIN CATCH
+            IF @@TRANCOUNT > 0
+                ROLLBACK TRANSACTION;
+
+            SELECT
+                '0' as 'code',
+                ERROR_MESSAGE() as 'message'
+        END CATCH
+
+        RETURN
+    END
+
+
+    -- MÉTODO: GetUserForLogin (del profesor)
+    IF @method = 'GetUserForLogin'
+    BEGIN
+        IF @Username IS NULL
+        BEGIN
+            SELECT
+                '0' as 'code',
+                'No se ha especificado el parámetro Username' as 'message'
+            RETURN
+        END
+
+        IF EXISTS (SELECT 1 FROM Users WHERE Username = @Username)
+        BEGIN
+            SELECT
+                UserId,
+                PasswordHash,
+                Role,
+                '1' as 'code',
+                'Success' as 'message'
+            FROM Users
+            WHERE Username = @Username
+        END
+        ELSE
+        BEGIN
+            SELECT
+                '0' as 'code',
+                'Usuario no encontrado' as 'message'
+        END
+
+        RETURN
+    END
 
 
     -- Ningún método coincidió
