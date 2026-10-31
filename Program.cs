@@ -25,28 +25,33 @@ builder.Services.AddScoped<backend_II.Database.UserRepository>();
 // JWT
 builder.Services.AddScoped<backend_II.Authentication.ITokenService, backend_II.Authentication.JwtTokenService>();
 
+// API Key
+builder.Services.AddScoped<backend_II.Authentication.IApiKeyValidator, backend_II.Authentication.ApiKeyValidator>();
+
 // Services
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IUserContextService, UserContextService>();
 builder.Services.AddScoped<ProductsServices>();
 builder.Services.AddScoped<backend_II.Services.AuthService>();
 
 var app = builder.Build();
 
-// ===== INYECCIÃ“N DE DEPENDENCIAS DESDE MAIN =====
+// ===== INYECCIÓN DE DEPENDENCIAS DESDE MAIN =====
 // Este bloque se ejecuta una sola vez al arrancar, antes de que el servidor
-// empiece a escuchar peticiones. Sirve para ver en consola cÃ³mo el contenedor
+// empiece a escuchar peticiones. Sirve para ver en consola cómo el contenedor
 // de dependencias construye los objetos que normalmente crea el framework.
 
-Console.WriteLine("\n===== DEMO: INYECCIÃ“N DE DEPENDENCIAS =====\n");
+Console.WriteLine("\n===== DEMO: INYECCIÓN DE DEPENDENCIAS =====\n");
 
 // 1) IConfiguration: no la registramos nosotros, CreateBuilder ya la trae.
 //    Se resuelve directo desde app.Services porque es Singleton.
 var configuration = app.Services.GetRequiredService<IConfiguration>();
 var connectionString = configuration.GetConnectionString("DefaultConnection");
 Console.WriteLine("[1] IConfiguration resuelta por el contenedor.");
-Console.WriteLine($"    Â¿Hay cadena de conexiÃ³n? {(string.IsNullOrWhiteSpace(connectionString) ? "NO" : "SÃ")}\n");
+Console.WriteLine($"    ¿Hay cadena de conexión? {(string.IsNullOrWhiteSpace(connectionString) ? "NO" : "SÍ")}\n");
 
-// 2) Scoped: un servicio Scoped vive lo que dura un "scope" (en la web, una peticiÃ³n).
-//    Fuera de una peticiÃ³n hay que crear el scope a mano; si no, el contenedor
+// 2) Scoped: un servicio Scoped vive lo que dura un "scope" (en la web, una petición).
+//    Fuera de una petición hay que crear el scope a mano; si no, el contenedor
 //    no permite resolver servicios Scoped.
 using (var scope1 = app.Services.CreateScope())
 {
@@ -55,14 +60,14 @@ using (var scope1 = app.Services.CreateScope())
 
     Console.WriteLine("[2] ProductsServices pedido dos veces en el MISMO scope:");
     Console.WriteLine($"    serviceA = #{serviceA.GetHashCode()}  |  serviceB = #{serviceB.GetHashCode()}");
-    Console.WriteLine($"    Â¿Es la misma instancia? {ReferenceEquals(serviceA, serviceB)}  (Scoped => una por scope)\n");
+    Console.WriteLine($"    ¿Es la misma instancia? {ReferenceEquals(serviceA, serviceB)}  (Scoped => una por scope)\n");
 
     using (var scope2 = app.Services.CreateScope())
     {
         var serviceC = scope2.ServiceProvider.GetRequiredService<ProductsServices>();
-        Console.WriteLine("[3] ProductsServices pedido en OTRO scope (otra \"peticiÃ³n\"):");
+        Console.WriteLine("[3] ProductsServices pedido en OTRO scope (otra \"petición\"):");
         Console.WriteLine($"    serviceC = #{serviceC.GetHashCode()}");
-        Console.WriteLine($"    Â¿Es la misma que serviceA? {ReferenceEquals(serviceA, serviceC)}  (cada peticiÃ³n recibe la suya)\n");
+        Console.WriteLine($"    ¿Es la misma que serviceA? {ReferenceEquals(serviceA, serviceC)}  (cada petición recibe la suya)\n");
     }
 
     // 3) Usar la capa de servicios directamente. Para construir ProductsServices
@@ -78,17 +83,17 @@ using (var scope1 = app.Services.CreateScope())
     Console.WriteLine();
 
     // 4) Crear el controlador. AddControllers() NO registra los controladores como
-    //    servicios, asÃ­ que se usa ActivatorUtilities: lee el constructor de
+    //    servicios, así que se usa ActivatorUtilities: lee el constructor de
     //    ProductsController, ve que pide un ProductsServices y se lo pide al scope.
     //    El controlador ya no habla con la base de datos: solo delega al servicio.
     var controller = ActivatorUtilities.CreateInstance<ProductsController>(scope1.ServiceProvider);
-    Console.WriteLine("[5] ProductsController creado con ActivatorUtilities (el contenedor inyectÃ³ ProductsServices).");
+    Console.WriteLine("[5] ProductsController creado con ActivatorUtilities (el contenedor inyectó ProductsServices).");
     Console.WriteLine("    Cadena: Controller -> Services -> Repository -> sp_GetAllActiveProducts\n");
 
     var respuestaTodos = await controller.GetAll();
     Console.WriteLine($"    controller.GetAll()                -> Success={respuestaTodos.Success} | {respuestaTodos.Message}");
 
-    // Se toma un SKU real de la lista para probar las bÃºsquedas por SKU.
+    // Se toma un SKU real de la lista para probar las búsquedas por SKU.
     var skuEjemplo = respuestaTodos.Data?.FirstOrDefault()?.SKU ?? "SKU-INEXISTENTE";
 
     var respuestaRuta = await controller.GetByRoute(skuEjemplo);
@@ -112,10 +117,10 @@ using (var scope1 = app.Services.CreateScope())
     var respuestaVacia = await controller.GetByNameFromQuery("");
     Console.WriteLine($"    controller.GetByNameFromQuery(\"\")  -> Success={respuestaVacia.Success} | {respuestaVacia.Message}");
 }
-// Al cerrar el using, el scope se destruye y con Ã©l todas sus instancias Scoped.
+// Al cerrar el using, el scope se destruye y con él todas sus instancias Scoped.
 
 Console.WriteLine("\n===== FIN DEMO: el servidor ahora atiende peticiones HTTP =====\n");
-// ===== FIN DEMOSTRACIÃ“N =====
+// ===== FIN DEMOSTRACIÓN =====
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

@@ -8,11 +8,11 @@ namespace backend_II.Authentication
     [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class)]
     public class AuthorizeTokenAttribute : Attribute, IAuthorizationFilter
     {
-        private readonly string? _requiredRole;
+        private readonly string[] _requiredRoles;
 
-        public AuthorizeTokenAttribute(string? requiredRole = null)
+        public AuthorizeTokenAttribute(params string[] requiredRoles)
         {
-            _requiredRole = requiredRole;
+            _requiredRoles = requiredRoles?.Where(r => !string.IsNullOrWhiteSpace(r)).ToArray() ?? Array.Empty<string>();
         }
 
         public void OnAuthorization(AuthorizationFilterContext context)
@@ -51,17 +51,22 @@ namespace backend_II.Authentication
 
             context.HttpContext.User = principal;
 
-            if (!string.IsNullOrEmpty(_requiredRole))
+            if (_requiredRoles.Length > 0)
             {
                 var role = principal.FindFirst(ClaimTypes.Role)?.Value 
                            ?? principal.FindFirst("role")?.Value;
 
-                if (!string.Equals(role, _requiredRole, StringComparison.OrdinalIgnoreCase))
+                var isAuthorized = _requiredRoles.Any(r =>
+                    r.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                     .Any(subRole => string.Equals(subRole, role, StringComparison.OrdinalIgnoreCase))
+                );
+
+                if (!isAuthorized)
                 {
                     context.Result = new ObjectResult(new GeneralResponse<object>
                     {
                         Success = false,
-                        Message = $"No cuenta con los permisos requeridos (Rol requerido: {_requiredRole})."
+                        Message = $"No cuenta con los permisos requeridos (Rol requerido: {string.Join(", ", _requiredRoles)})."
                     })
                     {
                         StatusCode = StatusCodes.Status403Forbidden
