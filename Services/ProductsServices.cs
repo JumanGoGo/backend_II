@@ -7,10 +7,12 @@ namespace backend_II.Services
     public class ProductsServices
     {
         private readonly ProductRepository _repository;
+        private readonly IUserContextService _userContextService;
 
-        public ProductsServices(ProductRepository repository)
+        public ProductsServices(ProductRepository repository, IUserContextService userContextService)
         {
             _repository = repository;
+            _userContextService = userContextService;
         }
 
         public async Task<GeneralResponse<List<Product>>> GetAll()
@@ -154,6 +156,31 @@ namespace backend_II.Services
                     Data = null 
                 };
             }
+        }
+
+        public GeneralResponse<UserInfoResponse> GetCurrentUserInfo()
+        {
+            if (!_userContextService.IsAuthenticated())
+            {
+                return new GeneralResponse<UserInfoResponse>
+                {
+                    Success = false,
+                    Message = "No se detectó un usuario autenticado en el contexto actual.",
+                    Data = null
+                };
+            }
+
+            return new GeneralResponse<UserInfoResponse>
+            {
+                Success = true,
+                Message = "Información del usuario autenticado extraída desde la capa de servicios.",
+                Data = new UserInfoResponse
+                {
+                    UserId = _userContextService.GetUserId(),
+                    Username = _userContextService.GetUsername() ?? string.Empty,
+                    Role = _userContextService.GetRole() ?? string.Empty
+                }
+            };
         }
     }
 }

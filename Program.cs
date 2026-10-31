@@ -13,7 +13,12 @@ builder.Services.AddScoped<backend_II.Database.UserRepository>();
 // JWT
 builder.Services.AddScoped<backend_II.Authentication.ITokenService, backend_II.Authentication.JwtTokenService>();
 
+// API Key
+builder.Services.AddScoped<backend_II.Authentication.IApiKeyValidator, backend_II.Authentication.ApiKeyValidator>();
+
 // Services
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<backend_II.Services.IUserContextService, backend_II.Services.UserContextService>();
 builder.Services.AddScoped<backend_II.Services.ProductsServices>();
 builder.Services.AddScoped<backend_II.Services.AuthService>();
 

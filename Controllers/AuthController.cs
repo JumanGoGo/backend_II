@@ -15,7 +15,9 @@ namespace backend_II.Controllers
             _authService = authService;
         }
 
+        // Endpoint público para autenticación y generación de tokens JWT
         [HttpPost("login")]
+        [Microsoft.AspNetCore.Authorization.AllowAnonymous]
         public GeneralResponse<LoginResponse> Login([FromBody] LoginRequest request)
         {
             return _authService.Login(request);
